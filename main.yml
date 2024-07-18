@@ -1,0 +1,45 @@
+- hosts: webserver
+  become: yes
+  vars:
+    project_name: myproject
+    project_path: /var/www/{{ project_name }}
+  tasks:
+    - name: Clone project repository
+      git:
+        repo: 'https://github.com/equqe/ansible-task.git'
+        dest: '{{ project_path }}'
+        clone: yes
+        update: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Docker Compose
+      pip:
+        name: docker-compose
+        state: present
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: docker-compose.yml
+        dest: '{{ project_path }}/docker-compose.yml'
+
+    - name: Copy nginx.conf
+      copy:
+        src: nginx.conf
+        dest: '{{ project_path }}/nginx.conf'
+
+    - name: Generate nginx config
+      template:
+        src: '{{ project_path }}/nginx.conf'
+        dest: '/etc/nginx/sites-available/{{ project_name }}'
+      notify:
+        - Restart nginx
+
+  handlers:
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
